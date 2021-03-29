@@ -1,49 +1,73 @@
-const errorNameUser = {
-    status: 500,
-    responseText: "Sorry, something went wrong",
-  }
-
 
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const superagent = require('superagent');
+const { response } = require('express');
 
 
 const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT;
+const LocationCodeAPIKey = process.env.GEO_CODE_API_KEY
+const WeatherCodeAPIKey = process.env.WEATHER_CODE_API_KEY
 
 
 app.get('/location', handleLocationRequest )
 app.get('/weather', handleWeatherRequest )
- 
+  
+
+
 function handleLocationRequest(req, res) {
 
     
-const search = req.query.city;
+    const searchQ = req.query.city ;
+ 
+    const url = `https://us1.locationiq.com/v1/search.php?key=${LocationCodeAPIKey}&q=${searchQ}&format=json`
 
-const locationsData = require('./data/location.json')
-
-if(!search)  {
-    res.status(500).send("something went wrong")
-} 
-const location = new Location(locationsData[0], search)
-res.send(location)
-
+    
+     if(!searchQ)  {
+          res.status(404).send("city not found")
+      }  
+        
+    superagent.get(url).then(resData => {
+        console.log(resData.body)
+        const location = new Location(resData.body[0], searchQ)
+        res.status(200).send(location);
+      }).catch((error) => {
+        res.status(500).send('Sorry, something went wrong');
+      });
+    
+    
  }
 
 function handleWeatherRequest(req, res) {   
-/*     const search = req.query.search_query;
- */
-    const weatherArr = [];
+    const latitude = req.query.lat
+    const longitude = req.query.lon
 
-    const weatherData = require('./data/weather.json')
+   console.log(search)
+ 
+   const weatherArr = [];
+    const url = `https://api.weatherbit.io/v2.0/forecast/daily?key=${WeatherCodeAPIKey}&q=${latitude}&q=${longitude}&format=json`
 
-    weatherData.data.forEach((element) => {
-        weatherArr.push(new Weather(element) )
+    superagent.get(url).then(dataSet => {
+        // console.log()
+        // dataSet.body.forEach(element => {
+        //     weatherArr.push(new Weather(element) )
+        // })
+        // console.log(dataSet.body)
+        // const weather = new Weather(dataSet.body.data)
+        res.status(200).send(dataSet)
     })
+
+
+
+    // const weatherData = require('./data/weather.json')
+
+
+   
     res.send(weatherArr)
  
     
@@ -52,8 +76,8 @@ function handleWeatherRequest(req, res) {
 
  ///------ Constructor -------------
 
-function Location(data, search) {
-    this.search_query = search;
+function Location(data, searchQ) {
+    this.search_query = searchQ
     this.formatted_query = data.display_name;
     this.latitude = data.lat;
     this.longitude = data.lon;
