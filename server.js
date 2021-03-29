@@ -26,15 +26,13 @@ const search = req.query.city;
 
 const locationsData = require('./data/location.json')
 
+if(!search)  {
+    res.status(500).send("something went wrong")
+} 
 const location = new Location(locationsData[0], search)
 res.send(location)
 
-/* if(search.toLowerCase() !== "seattle")  {
-    res.send(errorNameUser)
-} else {
-
-}
- */ }
+ }
 
 function handleWeatherRequest(req, res) {   
 /*     const search = req.query.search_query;
