@@ -7,17 +7,19 @@ const superagent = require('superagent');
 const { response } = require('express');
 
 
+
 const app = express();
 app.use(cors());
 
 const PORT = process.env.PORT;
 const LocationCodeAPIKey = process.env.GEO_CODE_API_KEY
 const WeatherCodeAPIKey = process.env.WEATHER_CODE_API_KEY
+const parkCodeAPIKey = process.env.PARK_CODE_API_KEY
 
 
 app.get('/location', handleLocationRequest )
 app.get('/weather', handleWeatherRequest )
-  
+app.get('/park', handleParkRequest )
 
 
 function handleLocationRequest(req, res) {
@@ -44,35 +46,45 @@ function handleLocationRequest(req, res) {
  }
 
 function handleWeatherRequest(req, res) {   
-    const latitude = req.query.lat
-    const longitude = req.query.lon
-
-   console.log(search)
+    // const latitude = req.query.lat
+    // const longitude = req.query.lon
+    const  { latitude, longitude } = req.query;
  
-   const weatherArr = [];
-    const url = `https://api.weatherbit.io/v2.0/forecast/daily?key=${WeatherCodeAPIKey}&q=${latitude}&q=${longitude}&format=json`
+    const url = `https://api.weatherbit.io/v2.0/forecast/daily`
+    const queryObj = {
+        lat: req.query.latitude,
+        lon: req.query.longitude,
+        key: WeatherCodeAPIKey
+    }
 
-    superagent.get(url).then(dataSet => {
-        // console.log()
-        // dataSet.body.forEach(element => {
-        //     weatherArr.push(new Weather(element) )
-        // })
-        // console.log(dataSet.body)
-        // const weather = new Weather(dataSet.body.data)
-        res.status(200).send(dataSet)
-    })
+    superagent.get(url).query(queryObj).then(dataSet => {
+        const myWeatherArrData = dataSet.body.data.map(weather => {
+            return new Weather(weather)
+        }) 
 
-
-
-    // const weatherData = require('./data/weather.json')
-
-
-   
-    res.send(weatherArr)
- 
-    
+        res.send(myWeatherArrData)
+    }).catch((error) => {
+        console.log('ERROR', error);
+        res.status(500).send('there is no data weather')
+    })    
 } 
 
+function handleParkRequest(req, res) {
+    const parkQuery = req.query.search_query
+
+    const parkUrl = `https://developer.nps.gov/api/v1/parks?q=${parkQuery}&api_key=${parkCodeAPIKey}`
+
+    superagent.get(parkUrl).then(parksDate => {
+        const myParkDataArray = parksDate.body.data.map(park => {
+            return new Park(park)
+        })
+        res.send(myParkDataArray)
+        console.log
+    }).catch((error) => {
+        console.log('error', error )
+        res.status(500).send('there is no park data')
+    })
+}
 
  ///------ Constructor -------------
 
@@ -88,6 +100,13 @@ function Weather(data) {
     this.time = data.datetime;
 } 
  
+function Park(data) {
+    this.name = data.name
+    this.address = `${data.addresses[0].line1}, ${data.addresses[0].city}, ${data.addresses[0].postalCode}`
+    this.fee = `0.000`
+    this.description = data.description
+    this.url = data.url
+}
 
 
 app.use('*', (req, res) => {
