@@ -5,8 +5,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
-const { response } = require('express');
 const pg = require(`pg`)
+// const { response } = require('express');
 
 const app = express();
 app.use(cors());
@@ -26,41 +26,72 @@ const client = new pg.Client(dataBaseUrl)
 // const postData = `select * from table`
 
 app.get('/location', handleLocationRequest )
-app.get('/location', handleLocationInfoFromDb )
+// app.get('/location', handleLocationInfoFromDb )
 
 app.get('/weather', handleWeatherRequest )
 app.get('/park', handleParkRequest )
+
+
 
 
 function handleLocationRequest(req, res) {
 
     
     const searchQ = req.query.city ;
- 
-    const url = `https://us1.locationiq.com/v1/search.php?key=${LocationCodeAPIKey}&q=${searchQ}&format=json`
 
     
-     if(!searchQ)  {
-          res.status(404).send("city not found")
-      }  
-        
-    superagent.get(url).then(resData => {
-        const location = new Location(resData.body[0], searchQ)
-        res.status(200).send(location);
-      }).catch((error) => {
-        res.status(500).send('Sorry, something went wrong');
-      });
-      
-      
     
+    
+    if(!searchQ)  {
+        res.status(404).send("city not found")
+    }  
+    
+    handleLocationInfoFromDb(searchQ).then(result => {
+        res.status(200).json(result)
+        console.log(`pass first function`)
+    }).catch(error => {
+        console.log(error)
+        res.status(500).send(`sorry something went wrong`)
+    })
+    
+    
+}
+
+
+function handleLocationInfoFromDb(city) {
+    
+    const safeValues = [city]
+    const sqlQuery = `SELECT * FROM locations WHERE search_query=$1`
+    
+    client.query(sqlQuery, safeValues).then(results => {
+        if(results.rows.length !== 0) {
+            console.log(`sendind data from DB`)
+            console.log(results.rows[0])
+            return results.rows[0]
+        } else {
+            const url = `https://us1.locationiq.com/v1/search.php?key=${LocationCodeAPIKey}&q=${city}&format=json`
+
+
+            
+            return superagent.get(url).then(resData => {
+                const location = new Location(resData.body[0], city)
+                const safeValues = [location.search_query, location.formatted_query, location.latitude, location.longitude]
+                const sqlQuery = `INSERT INTO locations(search_query, formatted_query, latitude, longitude) VALUES( $1, $2, $3, $4)`    
+                client.query(sqlQuery, safeValues)
+            
+                console.log(`send from API`)
+                return location
+              }).catch((error) => {
+                res.status(500).send('Sorry, something went wrong');
+              });
+        }
+    })
+
+    //add user to DB 
  }
 
- function handleLocationInfoFromDb(req, res) {
-    const city = req.query.city
 
 
-
- }
 
 function handleWeatherRequest(req, res) {   
     // const latitude = req.query.lat
