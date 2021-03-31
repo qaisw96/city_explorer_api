@@ -1,23 +1,33 @@
-
+// load environmenyal variable from .env file
 require('dotenv').config();
 
+// Extract packages
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
 const { response } = require('express');
-
-
+const pg = require(`pg`)
 
 const app = express();
 app.use(cors());
 
+// sign values to varibles from .env file 
 const PORT = process.env.PORT;
 const LocationCodeAPIKey = process.env.GEO_CODE_API_KEY
 const WeatherCodeAPIKey = process.env.WEATHER_CODE_API_KEY
 const parkCodeAPIKey = process.env.PARK_CODE_API_KEY
+const dataBaseUrl = process.env.DATABASE_URL
 
+
+// Database connection setup ---- Ready to be conneted :
+const client = new pg.Client(dataBaseUrl)
+
+
+// const postData = `select * from table`
 
 app.get('/location', handleLocationRequest )
+app.get('/location', handleLocationInfoFromDb )
+
 app.get('/weather', handleWeatherRequest )
 app.get('/park', handleParkRequest )
 
@@ -35,14 +45,21 @@ function handleLocationRequest(req, res) {
       }  
         
     superagent.get(url).then(resData => {
-        console.log(resData.body)
         const location = new Location(resData.body[0], searchQ)
         res.status(200).send(location);
       }).catch((error) => {
         res.status(500).send('Sorry, something went wrong');
       });
+      
+      
     
-    
+ }
+
+ function handleLocationInfoFromDb(req, res) {
+    const city = req.query.city
+
+
+
  }
 
 function handleWeatherRequest(req, res) {   
@@ -109,8 +126,17 @@ function Park(data) {
 }
 
 
+
+// connect to DB and start the web server 
+client.connect().then(() => {
+    app.listen(PORT, () => { 
+        console.log('connected to databace:', client.connectionParameters.database)
+        console.log(`Listening to Port ${PORT}`) });
+    })
+
+
+
 app.use('*', (req, res) => {
     res.send('all good nothing to see here!');
 });
 
-app.listen(PORT, () => console.log(`Listening to Port ${PORT}`));
