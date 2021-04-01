@@ -12,6 +12,7 @@ const app = express();
 app.use(cors());
 
 // sign values to varibles from .env file 
+const ENV = process.env.ENV || "DEP"
 const PORT = process.env.PORT;
 const LocationCodeAPIKey = process.env.GEO_CODE_API_KEY
 const WeatherCodeAPIKey = process.env.WEATHER_CODE_API_KEY
@@ -21,7 +22,8 @@ const dataBaseUrl = process.env.DATABASE_URL
 
 
 // Database connection setup ---- Ready to be conneted :
-const client = new pg.Client(dataBaseUrl)
+// const client = new pg.Client(dataBaseUrl)
+let client = '';if (ENV === 'DEP') {  client = new pg.Client({    connectionString: dataBaseUrl,    ssl: {      rejectUnauthorized: false    }  });} else {  client = new pg.Client({    connectionString: dataBaseUrl,  });}
 
 
 // const postData = `select * from table`
@@ -65,7 +67,7 @@ function handleLocationInfoFromDb(city) {
     const safeValues = [city]
     const sqlQuery = `SELECT * FROM locations WHERE search_query=$1`
     
-    client.query(sqlQuery, safeValues).then(results => {
+    return client.query(sqlQuery, safeValues).then(results => {
         if(results.rows.length !== 0) {
             console.log(`sendind data from DB`)
             console.log(results.rows[0])
@@ -137,15 +139,17 @@ function handleParkRequest(req, res) {
 }
 
 function handleMoviesRequest(req, res) {
-    const movieUrl = `https://api.themoviedb.org/3/movie/550?api_key=${moviesCodeAPIKey}`
+    const movieUrl = `https://api.themoviedb.org/3/movie/550?api_key=${moviesCodeAPIKey}&limit=4`
 
     superagent.get(movieUrl).then(moviesData => {
-        const movies = moviesData.body.data.map(movie => {
-            return new movie(movie)
-        })  
-    })
-
+        let movie = new Movie(moviesData.body)
+    
+        res.send(movie)  
+        })
+        
 }
+
+
 
  ///------ Constructor -------------
 
@@ -167,6 +171,16 @@ function Park(data) {
     this.fee = `0.000`
     this.description = data.description
     this.url = data.url
+}
+
+function Movie(data) {
+    this.title = data.title
+    this.overview = data.overview
+    this.average_votes = data.vote_average
+    this.total_votes = data.vote_count
+    this.image_url = data.production_companies[0].logo_path
+    this.popularity = data.popularity
+    this.released_on = data.release_date
 }
 
 
