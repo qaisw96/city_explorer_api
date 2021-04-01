@@ -16,6 +16,7 @@ const PORT = process.env.PORT;
 const LocationCodeAPIKey = process.env.GEO_CODE_API_KEY
 const WeatherCodeAPIKey = process.env.WEATHER_CODE_API_KEY
 const parkCodeAPIKey = process.env.PARK_CODE_API_KEY
+const moviesCodeAPIKey = process.env.MOVIE_API_KEY
 const dataBaseUrl = process.env.DATABASE_URL
 
 
@@ -30,6 +31,7 @@ app.get('/location', handleLocationRequest )
 
 app.get('/weather', handleWeatherRequest )
 app.get('/park', handleParkRequest )
+app.get('/movies', handleMoviesRequest)
 
 
 
@@ -132,6 +134,17 @@ function handleParkRequest(req, res) {
         console.log('error', error )
         res.status(500).send('there is no park data')
     })
+}
+
+function handleMoviesRequest(req, res) {
+    const movieUrl = `https://api.themoviedb.org/3/movie/550?api_key=${moviesCodeAPIKey}`
+
+    superagent.get(movieUrl).then(moviesData => {
+        const movies = moviesData.body.data.map(movie => {
+            return new movie(movie)
+        })  
+    })
+
 }
 
  ///------ Constructor -------------
