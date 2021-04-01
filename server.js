@@ -24,7 +24,14 @@ const dataBaseUrl = process.env.DATABASE_URL
 // Database connection setup ---- Ready to be conneted :
 // const client = new pg.Client(dataBaseUrl)
 // this statement to solve ssl ===> that DB cause 
-let client = '';if (ENV === 'DEP') {  client = new pg.Client({    connectionString: dataBaseUrl,    ssl: {      rejectUnauthorized: false    }  });} else {  client = new pg.Client({    connectionString: dataBaseUrl,  });}
+// let client = '';if (ENV === 'DEP') {  client = new pg.Client({    connectionString: dataBaseUrl,    ssl: {      rejectUnauthorized: false    }  });} else {  client = new pg.Client({    connectionString: dataBaseUrl,  });}
+
+const client = new pg.Client({
+    connectionString: dataBaseUrl,
+    ssl: {
+      rejectUnauthorized: false
+    }
+  });
 
 
 // const postData = `select * from table`
